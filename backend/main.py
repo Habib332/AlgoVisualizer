@@ -34,7 +34,7 @@ BRUTE_FORCE_MAX_N = 2000
 app = FastAPI(title="algo-visualizer")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173, https://algo-visualizer-ewe3.vercel.app/"],
+    allow_origins=["http://localhost:5173, https://algo-visualizer-7ja9.vercel.app"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
