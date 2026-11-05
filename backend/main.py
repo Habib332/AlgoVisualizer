@@ -304,3 +304,10 @@ def run_multiply(body: TextInput) -> dict:
         "truncated": truncated,
         "steps": steps,
     }
+
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "online",
+        "message": "Algo Visualizer backend is running."
+    }
