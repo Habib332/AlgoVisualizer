@@ -10,6 +10,15 @@ export interface RunState {
   kind: InputKind;
 }
 
+const API = "http://localhost:8000";
+
+type SampleKind = "cp" | "mul";
+
+const SAMPLE_GROUPS: { kind: SampleKind; label: string; accent: string; tint: string }[] = [
+  { kind: "cp", label: "Closest pair of points", accent: "#3b9a3e", tint: "#e7f3e8" },
+  { kind: "mul", label: "Integer multiplication", accent: "#2f80d0", tint: "#e6f0fa" },
+];
+
 interface Detected {
   kind: InputKind | null;
   summary: string;
@@ -138,23 +147,26 @@ const S: Record<string, CSSProperties> = {
   fileName: { wordBreak: "break-all" },
   ok: { color: C.greenDark, fontWeight: 600, fontSize: 14 },
   bad: { color: C.red, fontWeight: 600, fontSize: 14, maxWidth: "48ch" },
-  samples: {
+  samples: { marginTop: 24 },
+  samplesTitle: { fontSize: 14, color: C.muted, marginBottom: 10 },
+  sampleRow: {
     display: "flex",
     alignItems: "center",
     gap: 12,
     flexWrap: "wrap",
-    marginTop: 20,
-    fontSize: 14,
-    color: C.muted,
+    padding: "10px 0",
+    borderTop: `1px solid ${C.line}`,
   },
-  select: {
+  sampleLabel: { flex: "0 0 190px", fontSize: 14, fontWeight: 600 },
+  chips: { display: "flex", flexWrap: "wrap", gap: 8, flex: 1 },
+  chip: {
     font: "inherit",
-    color: C.ink,
-    padding: "8px 10px",
-    border: "1px solid #b9bfc5",
-    borderRadius: 6,
-    background: C.surface,
-    minWidth: 220,
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "5px 14px",
+    borderRadius: 999,
+    border: "1px solid",
+    cursor: "pointer",
   },
   kindSet: {
     margin: "20px 0 0",
@@ -271,14 +283,22 @@ export default function HomePage() {
   const [detected, setDetected] = useState<Detected | null>(null);
   const [kind, setKind] = useState<InputKind | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [samples, setSamples] = useState<string[]>([]);
+  const [samples, setSamples] = useState<Record<SampleKind, string[]>>({ cp: [], mul: [] });
+  const [sampleError, setSampleError] = useState(false);
+  const [selected, setSelected] = useState("");
 
-  // Optional: GET /api/samples -> string[] of sample file names
+  // GET /api/files/cp and /api/files/mul -> list of file names (cp_01.txt ...)
   useEffect(() => {
-    fetch("/api/samples")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: string[]) => setSamples(Array.isArray(list) ? list : []))
-      .catch(() => setSamples([]));
+    Promise.all(
+      SAMPLE_GROUPS.map((g) =>
+        fetch(`${API}/api/files/${g.kind}`).then((r) => {
+          if (!r.ok) throw new Error();
+          return r.json() as Promise<string[]>;
+        })
+      )
+    )
+      .then(([cp, mul]) => setSamples({ cp, mul }))
+      .catch(() => setSampleError(true));
   }, []);
 
   const load = (name: string, text: string) => {
@@ -291,6 +311,7 @@ export default function HomePage() {
 
   const readFile = async (file: File | undefined) => {
     if (!file) return;
+    setSelected("");
     load(file.name, await file.text());
   };
 
@@ -302,12 +323,12 @@ export default function HomePage() {
     readFile(e.dataTransfer.files?.[0]);
   };
 
-  // Optional: GET /api/samples/:name -> plain text of that file
-  const onSample = async (e: ChangeEvent<HTMLSelectElement>) => {
-    const name = e.target.value;
-    if (!name) return;
-    const res = await fetch(`/api/samples/${encodeURIComponent(name)}`);
-    if (res.ok) load(name, await res.text());
+  // GET /api/files/:kind/:name -> plain text of that sample
+  const pickSample = async (kind: SampleKind, name: string) => {
+    const res = await fetch(`${API}/api/files/${kind}/${name}`);
+    if (!res.ok) return;
+    setSelected(`${kind}/${name}`);
+    load(name, await res.text());
   };
 
   const run = () => {
@@ -372,21 +393,44 @@ export default function HomePage() {
             </PillButton>
           </div>
 
-          {samples.length > 0 && (
-            <label style={S.samples}>
-              <span>Or use a sample file</span>
-              <select style={S.select} defaultValue="" onChange={onSample}>
-                <option value="" disabled>
-                  Select a sample…
-                </option>
-                {samples.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          <div style={S.samples}>
+            <div style={S.samplesTitle}>Or choose one of the sample files</div>
+            {sampleError && (
+              <p style={S.bad}>
+                Couldn’t load the samples. Check that the backend is running on {API}.
+              </p>
+            )}
+            {!sampleError &&
+              SAMPLE_GROUPS.map((g) => (
+                <div key={g.kind} style={S.sampleRow}>
+                  <span style={S.sampleLabel}>{g.label}</span>
+                  <div style={S.chips}>
+                    {samples[g.kind].map((name) => {
+                      const id = `${g.kind}/${name}`;
+                      const on = selected === id;
+                      const n = name.match(/\d+/);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          title={name}
+                          aria-pressed={on}
+                          onClick={() => pickSample(g.kind, name)}
+                          style={{
+                            ...S.chip,
+                            borderColor: g.accent,
+                            background: on ? g.accent : g.tint,
+                            color: on ? "#fff" : g.accent,
+                          }}
+                        >
+                          Sample {n ? Number(n[0]) : name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+          </div>
 
           {detected?.kind && (
             <fieldset style={S.kindSet}>
