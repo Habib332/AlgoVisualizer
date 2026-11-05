@@ -3,6 +3,15 @@ algo-visualizer backend (FastAPI).
 
 Run from the backend/ folder:
     uvicorn main:app --reload --port 8000
+
+Expected layout:
+    backend/
+      main.py
+      closest_pair.py
+      karatsuba.py
+      data/
+        closest_pair/    cp_01.txt, cp_02.txt, ...
+        multiplication/  mul_01.txt, mul_02.txt, ...
 """
 
 from __future__ import annotations
@@ -22,7 +31,8 @@ from pydantic import BaseModel, Field
 import closest_pair as cp
 import karatsuba as ka   # importing this also lifts Python's int<->str digit limit
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+# The data folder now lives INSIDE backend/ (next to this file).
+DATA_DIR = Path(__file__).resolve().parent / "data"
 KIND_DIRS = {"cp": DATA_DIR / "closest_pair", "mul": DATA_DIR / "multiplication"}
 
 # Input limits: keep one request from tying up the server for minutes.
@@ -305,9 +315,12 @@ def run_multiply(body: TextInput) -> dict:
         "steps": steps,
     }
 
+
 @app.get("/api/health")
 def health_check():
     return {
         "status": "online",
-        "message": "Algo Visualizer backend is running."
+        "message": "Algo Visualizer backend is running.",
+        "data_dir": str(DATA_DIR),
+        "data_dir_exists": DATA_DIR.is_dir(),
     }
