@@ -4,5 +4,5 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server: { proxy: { "/api": "https://algo-visualizer-ef6l.vercel.app/" } }
+  server: { proxy: { "/api": "https://algo-visualizer-ef6l.vercel.app" } }
 })

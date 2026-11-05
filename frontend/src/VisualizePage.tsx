@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { InputKind, RunState } from "./HomePage";
 
 // Backend address (your FastAPI CORS already allows http://localhost:5173)
-const API = "https://algo-visualizer-ef6l.vercel.app/";
+const API = "https://algo-visualizer-ef6l.vercel.app";
 
 /* ------------------------------------------------------------------ */
 /* Types that mirror your FastAPI models                               */
