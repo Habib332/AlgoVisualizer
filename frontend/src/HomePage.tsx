@@ -10,7 +10,7 @@ export interface RunState {
   kind: InputKind;
 }
 
-const API = "http://localhost:8000";
+const API = "https://algo-visualizer-ef6l.vercel.app/";
 
 type SampleKind = "cp" | "mul";
 
